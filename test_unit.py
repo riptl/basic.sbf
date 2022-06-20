@@ -30,20 +30,33 @@ def test_program(unit_case):
         "--input=/dev/stdin",
         "--use=interpreter",
         "--output=json-compact",
+        # "--trace",
         "basic.so",
     ]
     input_obj = {
         "accounts": [
             {
-                "key": [42] * 32,
+                "key": [0x69] * 32,
                 "owner": [0] * 32,
                 "is_signer": True,
                 "is_writable": True,
                 "lamports": 1000,
+                "data": [0] * 8192,
             }
         ],
         "instruction_data": h2i(unit_case["input"]),
     }
-    subprocess.run(
-        cmd, text=True, check=True, input=json.dumps(input_obj), stderr=subprocess.PIPE
+    process = subprocess.run(
+        cmd,
+        text=True,
+        check=True,
+        input=json.dumps(input_obj),
+        capture_output=True,
     )
+    stdout = process.stdout
+    result = json.loads(stdout)
+    log = "\n".join(result.get("log", []))
+    result_str = result["result"]
+    if result_str.startswith("Err("):
+        assert unit_case.get("result", "") == result_str
+    assert unit_case.get("log", "").strip() == log.strip()

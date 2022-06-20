@@ -5,15 +5,19 @@ SOLANA_RUNTIME_LIB_DIR=$(SOLANA_BPF_TOOLS_ROOT)/llvm/lib
 LLVM_ROOT=$(SOLANA_BPF_TOOLS_ROOT)/llvm
 CLANG=$(LLVM_ROOT)/bin/clang
 CLANGFLAGS=-target bpf -march=bpfel+solana
-LD="$(LLVM_ROOT)/bin/ld.lld"
+LD=$(LLVM_ROOT)/bin/ld.lld
 LDFLAGS=
+OBJDUMP=$(LLVM_ROOT)/bin/llvm-objdump
 
 basic.so: basic.o basic.ld
 	$(LD) $(LDFLAGS) -z notext -shared --Bdynamic basic.ld --entry entrypoint -L $(SOLANA_RUNTIME_LIB_DIR) -lc -o $@ basic.o $(SOLANA_COMPILER_RT_DIR)/libcompiler_builtins-*.rlib
+
+basic.txt: basic.so
+	$(OBJDUMP) -phrRds $< > $@
 
 basic.o: basic.s
 	$(CLANG) $(CLANGFLAGS) -c -x assembler -o $@ $<
 
 .PHONY: clean
 clean:
-	rm -vf *.o *.so
+	rm -vf *.o *.so basic.txt
